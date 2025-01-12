@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { PrismaClient } from "@prisma/client";
 
-import { username } from "better-auth/plugins";
+import { username, admin } from "better-auth/plugins";
 import { passkey } from "better-auth/plugins/passkey";
 
 const prisma = new PrismaClient();
@@ -21,5 +21,5 @@ export const auth = betterAuth({
     rateLimit: {
         enabled: true,
     },
-    plugins: [username(), passkey()],
+    plugins: [username(), passkey(), admin()],
 });
