@@ -101,6 +101,8 @@ model status {
   user       User       @relation(fields: [email], references: [email], onDelete: Cascade, onUpdate: Cascade)
   activities activity[]
   signups    signup[]
+  makePay    payment[]  @relation("FromTransaction")
+  assigned   payment[]  @relation("ToTransaction")
 }
 
 model activity {
@@ -112,6 +114,17 @@ model activity {
   updatedAt DateTime? @updatedAt
 
   user status @relation(fields: [email], references: [email], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model payment {
+  id         String    @id @default(cuid())
+  fromEmail  String
+  toEmail    String
+  amount     Float
+  createAt   DateTime  @default(now())
+  finishedAt DateTime?
+  from       status    @relation("FromTransaction", fields: [fromEmail], references: [email], onDelete: Cascade, onUpdate: Cascade)
+  to         status    @relation("ToTransaction", fields: [toEmail], references: [email], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model signup {
