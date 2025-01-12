@@ -1,0 +1,65 @@
+---
+import { default as Layout } from "@/atom/layouts/auth-layout.astro";
+import {
+    getUserActivities,
+    getUserActivitiesInDateRange,
+} from "@/src/lib/activity";
+import { getUserStatus } from "@/src/lib/user";
+import { timeForNextGrade, translateGrade } from "@/atom/utils";
+const email = Astro.locals.user?.email;
+if (!email) {
+    return Astro.redirect("/signin?from=/app");
+}
+const status = await getUserStatus(email);
+if (!status) {
+    return Astro.redirect("/signin?from=/app");
+}
+const activities = await getUserActivities(email);
+const activitiesFrom = await getUserActivitiesInDateRange(
+    email,
+    status.getGradeAt ?? status.createAt,
+    new Date()
+);
+const { grade, getGradeAt } = status;
+const nextGrade = timeForNextGrade(grade);
+// 前回の昇級からの稽古日数としてactivitiesFrom[n].periodの合計を1.5で割ったものを求める。
+const period = activitiesFrom.reduce((acc, cur) => acc + cur.period, 0) / 1.5;
+const needToNextGrade = Math.ceil(nextGrade - period);
+---
+
+<Layout title="きろくアプリ - マイページ">
+    <h1>マイページ</h1>
+    <h2>
+        {translateGrade(grade >= 0 ? grade - 2 : grade - 1)}
+        {grade >= 0 ? "昇級" : "昇段"}まで
+    </h2>
+    <p>{needToNextGrade} / {nextGrade} 日</p>
+    <hr />
+    <h2>稽古履歴</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>日付</th>
+                <th>稽古時間</th>
+                <!-- <th>稽古場所</th> -->
+            </tr>
+        </thead>
+        <tbody>
+            {
+                activities.length === 0 ? (
+                    <tr>
+                        <td>履歴はありません</td>
+                        <td>こちらから追加しましょう!</td>
+                    </tr>
+                ) : (
+                    activities.map((activity) => (
+                        <tr>
+                            <td>{activity.date.toLocaleDateString()}</td>
+                            <td>{activity.period}</td>
+                        </tr>
+                    ))
+                )
+            }
+        </tbody>
+    </table>
+</Layout>

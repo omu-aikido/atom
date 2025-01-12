@@ -1,0 +1,184 @@
+---
+import { grade } from "@/atom/utils";
+import { default as Layout } from "@/atom/layouts/non-auth-layout.astro";
+import ProgressCircle from "@/atom/components/ui/progress-circle.astro";
+---
+
+<Layout title="大阪公立大学合氣道部 - ユーザー登録">
+    <h1>Sign Up</h1>
+    <form id="signup-form" class="signup-form">
+        <label for="name-fields">
+            名前
+            <span style="color:rgb(var(--maroon))">*</span>
+        </label>
+        <div class="name-fields">
+            <div>
+                <input
+                    type="text"
+                    id="last-name"
+                    name="last-name"
+                    placeholder="姓"
+                    required
+                />
+            </div>
+            <div>
+                <input
+                    type="text"
+                    id="first-name"
+                    name="first-name"
+                    placeholder="名"
+                    required
+                />
+            </div>
+        </div>
+
+        <label for="email">
+            Email
+            <span style="color:rgb(var(--maroon))">*</span>
+        </label>
+        <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="Email"
+            required
+        />
+
+        <label for="password">
+            Password
+            <span style="color:rgb(var(--maroon))">*</span>
+        </label>
+        <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Password"
+            required
+        />
+
+        <label for="grade">
+            所持級段位
+            <span style="color:rgb(var(--maroon))">*</span>
+        </label>
+        <select id="grade" name="grade" required>
+            {grade.map((g) => <option value={g.grade}>{g.name}</option>)}
+        </select>
+
+        <label for="year">
+            入部年度
+            <span style="color:rgb(var(--maroon))">*</span>
+        </label>
+        <input
+            type="number"
+            id="year"
+            name="year"
+            placeholder="4桁の数字"
+            required
+            value={new Date().getFullYear()}
+        />
+        <div id="loading" class="loading" style="display: none;">
+            <ProgressCircle title="サインアップ中" inline="true" />
+        </div>
+        <button type="submit">Sign up</button>
+    </form>
+    <p>Already have an account? <a href="/signin">Sign in here</a>.</p>
+</Layout>
+
+<style>
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+    .signup-form {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        border-radius: 8px;
+        padding: 1em;
+        box-shadow: 0 0 8px 4px rgb(var(--shadow) / 0.3);
+    }
+
+    .name-fields {
+        display: flex;
+        gap: 1rem;
+    }
+    .name-fields input {
+        width: 80%;
+    }
+
+    .loading {
+        margin-top: 1rem;
+        font-size: 1rem;
+        color: rgb(var(--subtext1));
+    }
+</style>
+
+<script>
+    import { authClient } from "../lib/auh-client";
+    const form = document.getElementById("signup-form");
+    const loading = document.getElementById("loading");
+    form?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (loading) {
+            loading.style.display = "block";
+        }
+        const formData = new FormData(e.target as HTMLFormElement);
+        const last_name = formData.get("last-name") as string;
+        const first_name = formData.get("first-name") as string;
+        const name = last_name + " " + first_name;
+        const email = formData.get("email") as string;
+        const password = formData.get("password") as string;
+        const year = formData.get("year") as string;
+        const grade = formData.get("grade") as string;
+        const tmp = await authClient.signUp.email({
+            name,
+            email,
+            password,
+        });
+        if (Boolean(tmp.error) === false) {
+            const userCreate = await fetch(
+                "/api/user/status?email=" +
+                    email +
+                    "&year=" +
+                    new Date().getFullYear() +
+                    "&grade=" +
+                    0,
+                {
+                    method: "POST",
+                }
+            );
+            if (userCreate.status !== 200) {
+                alert("ユーザー作成に失敗しました");
+                if (loading) {
+                    loading.style.display = "none";
+                }
+                return;
+            }
+            const statusCrete = await fetch(
+                "/api/user/status?email=" +
+                    email +
+                    "&year=" +
+                    new Date().getFullYear() +
+                    "&grade=" +
+                    grade,
+                {
+                    method: "POST",
+                }
+            );
+            if (statusCrete.status !== 200) {
+                alert("ユーザー情報登録に失敗しました");
+                if (loading) {
+                    loading.style.display = "none";
+                }
+                return;
+            }
+            window.location.href = "/signin";
+        }
+        if (loading) {
+            loading.style.display = "none";
+        }
+    });
+</script>

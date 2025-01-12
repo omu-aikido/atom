@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  username      String?
+  sessions      Session[]
+  accounts      Account[]
+
+  passkeys Passkey[]
+  status   status?
+
+  @@unique([email])
+  @@unique([username])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+model Passkey {
+  id           String    @id
+  name         String?
+  publicKey    String
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialID String
+  counter      Int
+  deviceType   String
+  backedUp     Boolean
+  transports   String?
+  createdAt    DateTime?
+
+  @@map("passkey")
+}
+
+model status {
+  email      String     @id
+  grade      Int        @default(0)
+  getGradeAt DateTime?
+  role       Role?
+  joinedAt   Int        @default(2022)
+  year       Year       @default(UnVerified)
+  createAt   DateTime   @default(now())
+  updatedAt  DateTime?  @updatedAt
+  user       User       @relation(fields: [email], references: [email], onDelete: Cascade, onUpdate: Cascade)
+  activities activity[]
+  signups    signup[]
+}
+
+model activity {
+  id        String    @id @default(cuid())
+  email     String
+  date      DateTime
+  period    Float     @default(1.5)
+  createAt  DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+
+  user status @relation(fields: [email], references: [email], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model signup {
+  id        String    @id @default(cuid())
+  email     String
+  token     String
+  expiresAt DateTime
+  createAt  DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+
+  user status @relation(fields: [email], references: [email], onDelete: Cascade, onUpdate: Cascade)
+}
+
+enum Role {
+  Admin // 管理者
+  Captain // 部長
+  Vice_Cap // 副部長
+  Treasurer // 会計
+  Clerk // 書記
+  Liaison // 渉外
+}
+
+enum Year {
+  Graduate // 卒業生
+  Senior // 四回生
+  Junior // 三回生
+  Sophomore // 二回生
+  Freshman // 一年生
+  UnVerified // 未認証ユーザ
+}

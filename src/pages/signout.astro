@@ -1,0 +1,22 @@
+---
+import { default as Layout } from "@/atom/layouts/auth-layout.astro";
+import ProgressCircle from "@/atom/components/ui/progress-circle.astro";
+---
+
+<Layout title="大阪公立大学合氣道部 - サインアウト">
+    <ProgressCircle title="サインアウト中" />
+    <script>
+        const redirect = new URLSearchParams(window.location.search).get(
+            "from"
+        );
+        import { authClient } from "../lib/auh-client";
+        document.addEventListener("DOMContentLoaded", async () => {
+            await authClient.signOut();
+            if (redirect) {
+                window.location.href = redirect;
+            } else {
+                window.location.href = "/";
+            }
+        });
+    </script>
+</Layout>

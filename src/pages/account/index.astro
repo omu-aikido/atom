@@ -1,0 +1,82 @@
+---
+import { default as Layout } from "@/atom/layouts/auth-layout.astro";
+import { getStatusFromSession, getUserFromSession } from "@/src/lib/user";
+import { $Enums } from "@prisma/client";
+import { translateGrade } from "@/atom/utils";
+const session = Astro.locals.session
+    ? Astro.locals.session
+    : Astro.redirect("/signin?from=/account");
+if (session instanceof Response) {
+    return session;
+}
+
+const status = await getStatusFromSession(session);
+const user = await getUserFromSession(session);
+if (!status) {
+    console.log("no status");
+    return Astro.redirect("/signin?from=/account");
+}
+if (!user) {
+    console.log("no user");
+    return Astro.redirect("/signin?from=/account");
+}
+const { email, joinedAt, role, grade, getGradeAt } = status;
+const { name, username } = user;
+---
+
+<Layout title="大阪公立大学合氣道部 - ユーザー">
+    <h1>アカウント</h1>
+    <h3>ユーザー情報</h3>
+    <table class="user-info" style="margin: 1rem;">
+        <tr>
+            <td>名前</td>
+            <td>{name}</td>
+        </tr>
+        <tr>
+            <td>メールアドレス</td>
+            <td>{email}</td>
+        </tr>
+        <tr>
+            <td>ユーザーID</td>
+            <td>{username ?? "───"}</td>
+        </tr>
+        <tr>
+            <td>級段位</td>
+            <td>{translateGrade(grade)}</td>
+        </tr>
+        <tr>
+            <td>級段位取得日</td>
+            <td>{getGradeAt?.toLocaleDateString() ?? "───"}</td>
+        </tr>
+        <tr>
+            <td>入部年度</td>
+            <td>{joinedAt}年</td>
+        </tr>
+        {
+            role === ($Enums.Role.Admin || $Enums.Role.Exec) ? (
+                <tr>
+                    <td>権限</td>
+                    {role === $Enums.Role.Admin ? (
+                        <td>管理者</td>
+                    ) : (
+                        <td>幹部</td>
+                    )}
+                </tr>
+            ) : null
+        }
+    </table>
+
+    <span class="info"></span>
+    <h3>アカウント設定</h3>
+    <ul>
+        <a href="/account/edit">Edit Profile</a><br /><br />
+        <!-- <a href="/account/password">Change Email/Password</a><br /><br /> -->
+        <!-- <a href="/account/delete">Delete Account</a> -->
+    </ul>
+</Layout>
+<style>
+    tr {
+        margin-left: 1rem;
+        margin-right: 1rem;
+    }
+</style>

@@ -1,0 +1,412 @@
+openapi: 3.0.0
+info:
+    title: 部活動活動日記録API
+    version: 1.0.0
+    description: 部活動の活動日を記録し、幹部と共有/振り返りができるウェブアプリケーションのAPI
+servers:
+    - url: https://{environment}.example.com/v1
+      description: 本番環境
+      variables:
+          environment:
+              default: api
+              enum:
+                  - api # 本番環境
+                  - dev # 開発環境
+                  - test # テスト環境(ステージング)
+    - url: http://localhost:4321/v1
+      description: ローカル環境
+paths:
+    /auth/signup:
+        post:
+            summary: ユーザー登録
+            description: 招待コードを使用してユーザーを登録する
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                inviteCode:
+                                    type: string
+                                    description: 招待コード
+                                id:
+                                    type: string
+                                    description: OMUID
+                                name:
+                                    type: string
+                                password:
+                                    type: string
+                            required:
+                                - inviteCode
+                                - id
+                                - name
+                                - password
+            responses:
+                "201":
+                    description: ユーザー登録成功
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/User"
+                "400":
+                    description: 無効な招待コード
+    /auth/login:
+        post:
+            summary: ユーザーログイン
+            description: ユーザーがログインし、トークンを取得する
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                id:
+                                    type: string
+                                    description: OMUID
+                                password:
+                                    type: string
+                            required:
+                                - id
+                                - password
+            responses:
+                "200":
+                    description: ログイン成功
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    token:
+                                        type: string
+                                        description: 認証トークン
+                "401":
+                    description: 認証失敗
+    /users/me:
+        get:
+            summary: 自分の情報取得
+            description: 認証されたユーザー自身の情報を取得する
+            security:
+                - BearerAuth: []
+            responses:
+                "200":
+                    description: ユーザー情報
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/User"
+        put:
+            summary: 自分の情報更新
+            description: 認証されたユーザー自身の情報を更新する
+            security:
+                - BearerAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/UserUpdate"
+            responses:
+                "200":
+                    description: ユーザー情報更新成功
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/User"
+    /users:
+        get:
+            summary: ユーザー一覧取得
+            description: 管理者がユーザー一覧を取得する
+            security:
+                - BearerAuth: []
+            responses:
+                "200":
+                    description: ユーザー一覧
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/User"
+    /users/{id}:
+        get:
+            summary: ユーザー取得
+            description: 管理者がユーザーを取得する
+            security:
+                - BearerAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      description: ユーザーのOMUID
+            responses:
+                "200":
+                    description: ユーザー情報
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/User"
+        put:
+            summary: ユーザー更新
+            description: 管理者がユーザー情報を更新する
+            security:
+                - BearerAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      description: ユーザーのOMUID
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/UserUpdate"
+            responses:
+                "200":
+                    description: ユーザー情報更新成功
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/User"
+        delete:
+            summary: ユーザー削除
+            description: 管理者がユーザーを削除する
+            security:
+                - BearerAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      description: ユーザーのOMUID
+            responses:
+                "204":
+                    description: ユーザー削除成功
+    /practice-records:
+        get:
+            summary: 自分の練習記録一覧取得
+            description: ユーザーが自分の練習記録を取得する
+            security:
+                - BearerAuth: []
+            responses:
+                "200":
+                    description: 練習記録一覧
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/PracticeRecord"
+        post:
+            summary: 練習記録登録
+            description: ユーザーが練習記録を登録する
+            security:
+                - BearerAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PracticeRecordCreate"
+            responses:
+                "201":
+                    description: 練習記録登録成功
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PracticeRecord"
+    /practice-records/{id}:
+        get:
+            summary: 練習記録取得
+            description: ユーザーが自分の練習記録を取得する
+            security:
+                - BearerAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      description: 練習記録のID
+            responses:
+                "200":
+                    description: 練習記録
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PracticeRecord"
+        put:
+            summary: 練習記録更新
+            description: ユーザーが自分の練習記録を更新する
+            security:
+                - BearerAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      description: 練習記録のID
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PracticeRecordUpdate"
+            responses:
+                "200":
+                    description: 練習記録更新成功
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PracticeRecord"
+        delete:
+            summary: 練習記録削除
+            description: ユーザーが自分の練習記録を削除する
+            security:
+                - BearerAuth: []
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                      description: 練習記録のID
+            responses:
+                "204":
+                    description: 練習記録削除成功
+    /admin/practice-records/{id}:
+        get:
+            summary: ユーザーの練習記録一覧取得
+            description: 管理者がユーザーの練習記録を取得する
+            security:
+                - BearerAuth: []
+            responses:
+                "200":
+                    description: 練習記録一覧
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/PracticeRecord"
+components:
+    securitySchemes:
+        BearerAuth:
+            type: http
+            scheme: bearer
+            bearerFormat: JWT
+    schemas:
+        User:
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: OMUID
+                name:
+                    type: string
+                    description: ユーザー名
+                admin:
+                    type: boolean
+                    description: 管理者権限
+                grade:
+                    type: integer
+                    description: 級位・段位
+                registered_at:
+                    type: string
+                    format: date-time
+                    description: 級位・段位取得日
+                created_at:
+                    type: string
+                    format: date-time
+                    description: 作成日時
+                updated_at:
+                    type: string
+                    format: date-time
+                    description: 更新日時
+            required:
+                - id
+                - name
+                - admin
+                - grade
+        UserUpdate:
+            type: object
+            properties:
+                name:
+                    type: string
+                    description: ユーザー名
+                password:
+                    type: string
+                    description: パスワード
+                grade:
+                    type: integer
+                    description: 級位・段位
+                registered_at:
+                    type: string
+                    format: date-time
+                    description: 級位・段位取得日
+            required:
+                - date
+                - time
+        PracticeRecord:
+            type: object
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    description: 練習記録のID
+                user:
+                    type: string
+                    description: ユーザーのOMUID
+                date:
+                    type: string
+                    format: date
+                    description: 練習日
+                time:
+                    type: number
+                    format: float
+                    description: 練習時間（時間単位）
+                edited:
+                    type: string
+                    format: uuid
+                    description: 編集した場合の新しい記録ID
+            required:
+                - id
+                - user
+                - date
+                - time
+        PracticeRecordCreate:
+            type: object
+            properties:
+                date:
+                    type: string
+                    format: date
+                    description: 練習日
+                time:
+                    type: number
+                    format: float
+                    description: 練習時間（時間単位）
+            required:
+                - date
+                - time
+        PracticeRecordUpdate:
+            type: object
+            properties:
+                date:
+                    type: string
+                    format: date
+                    description: 練習日
+                time:
+                    type: number
+                    format: float
+                    description: 練習時間（時間単位）
+            required:
+                - date
+                - time
